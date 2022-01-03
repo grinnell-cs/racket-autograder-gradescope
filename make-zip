@@ -1,0 +1,196 @@
+#!/usr/bin/env perl
+
+# make-zip test-file other-files
+#   POD documentation at end.
+
+# +--------------+---------------------------------------------------
+# | Instructions |
+# +--------------+
+
+# Most of the instructions can be found in the POD documentation at
+# the end.  Or see the README file for more details.
+
+# +-----------------+------------------------------------------------
+# | Developer Notes |
+# +-----------------+
+
+# This should be a relatively simple program.  I've just added most
+# of the tooling that I like to see in programs (command-line flags,
+# input checking, some tracing, etc.)
+
+# +-------+----------------------------------------------------------
+# | To Do |
+# +-------+
+
+# [ ] Finish the isGradeFile code.
+
+# +---------+--------------------------------------------------------
+# | Modules |
+# +---------+
+
+use strict;
+use warnings;
+
+use File::Basename;
+use File::Copy;
+use Pod::Usage;
+
+use Getopt::Long qw(GetOptions);
+Getopt::Long::Configure qw(gnu_getopt);
+
+# +---------+--------------------------------------------------------
+# | Globals |
+# +---------+
+
+my $dir = dirname((-l __FILE__) ? readlink(__FILE__) : __FILE__);
+my @PRIMARY_FILES = ("$dir/files/setup.sh", "$dir/files/lib-grade.rkt");
+my $help = 0;
+my $docs = 0;
+my $verbose = 1;
+
+# +-----------+------------------------------------------------------
+# | Utilities |
+# +-----------+
+
+# LOG($msg)
+#   Print a tracing message when tracing is on.
+sub LOG($) {
+  if ($verbose) {
+    my ($msg) = @_;
+    print STDERR "*** ", $msg, "\n";
+  }
+} # LOG
+
+# badfile($msg)
+#   Print the message and return 0;
+sub badfile($) {
+  my ($msg) = @_;
+  print STDERR "Error: $msg\n";
+  return 0;
+} # badfile
+
+# isGradeFile($fname)
+#   Checks to see if fname appears to be a grade file.
+sub isGradeFile($) {
+  my ($fname) = @_;
+  0 == system("grep -q '^#lang racket' '$fname'")
+    or return badfile("File needs to start with `#lang racket`");
+  return 1;
+} # isGradeFile
+
+# sampleGradeFile()
+#   Print a sample grade file
+sub sampleGradeFile() {
+  print STDERR <<"CONTENTS";
+        #lang racket
+        (require rackunit)
+        (require "lib-grade.rkt")
+        (current-directory "/autograder/submission")
+        (define-var NAME from "FILE.rkt")
+        (define-test-suite tests
+        (test-equal? "silly" silly "Silly")
+        (test-equal? "Same Directory"
+                     (first-line "silly.txt")
+                     "Silly")
+        (test-equal? "Different directory, using full path"
+                     (first-line "/autograder/source/sample.txt")
+                     "Sample"))
+        (generate-results tests)
+CONTENTS
+} # sampleGradeFile
+
+# +------+-----------------------------------------------------------
+# | Main |
+# +------+
+
+# Get the initial options
+GetOptions(
+  'verbose|v' => \$verbose,
+  'help|?' => \$help,
+  'docs' => \$docs
+);
+LOG("Verbose mode is ON");
+
+pod2usage(1) if $help;
+pod2usage(-verbose => 2) if $docs;
+
+if ($#ARGV < 0) {
+  print STDERR "Error: You must supply a test file\n";
+  pod2usage(1);
+}
+
+my $gradeFilePath = $ARGV[0];
+my $gradeFile = basename($gradeFilePath);
+LOG("Grade file path is $gradeFilePath, file is $gradeFile");
+
+if ($gradeFilePath !~ m/\.rkt$/) {
+  print STDERR "Error: Grade file must be a Racket file\n";
+  pod2usage(1);
+}
+
+if (!isGradeFile($gradeFilePath)) {
+  print STDERR "Error: Invalid grade file.  Example follows.\n\n";
+  sampleGradeFile();
+  print STDERR "\n";
+  pod2usage(1);
+} 
+
+my $tmpdir = "/tmp/make-zip-$$";
+LOG("Using directory $tmpdir\n");
+mkdir $tmpdir;
+
+foreach my $file (@ARGV) {
+  LOG("Copying $file");
+  copy($file,$tmpdir);
+} # foreach
+
+foreach my $file (@PRIMARY_FILES) {
+  LOG("Copying $file");
+  copy($file,$tmpdir);
+} # foreach
+
+LOG("Creating autograder");
+my $autograderFile = "$tmpdir/run_autograder";
+open my $autograder , "> $autograderFile";
+print $autograder <<"AUTOGRADER";
+#!/usr/bin/env bash
+
+racket /autograder/source/$gradeFile;
+AUTOGRADER
+
+close $autograder;
+chmod 0755, $autograderFile;
+
+my $zipfile = $gradeFile;
+$zipfile =~ s/\.rkt$/.zip/g;
+$zipfile =~ s/^/autograder-/g;
+LOG("Creating zipfile $zipfile");
+system("zip -j $zipfile '$tmpdir'/*");
+
+if (!$verbose) {
+  # system("rm -rf $tmpdir");
+} else {
+  LOG("Please don't forget to remove $tmpdir!");
+}
+
+__END__
+
+=head1 NAME
+
+make-zip - Create a zipfile for uploading to Gradescope
+
+=head1 SYNOPSIS
+
+make-zip [options] tests.rkt [other-files]
+
+=head1 OPTIONS
+
+=head1 DESCRIPTION=
+
+=head1 AUTHOR
+
+Samuel A. Rebelsky
+
+=head1 LICENSE
+
+=cut
