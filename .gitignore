@@ -1,0 +1,15 @@
+# Ignore various temporary files
+*~
+*.swp
+
+# Macs like to add weird files
+.DS_Store
+
+# Our autograders store their output in results.json
+results.json
+
+# Don't store compiled DrRacket code.
+compiled/
+
+# Don't store the .zip files we build.
+*.zip
