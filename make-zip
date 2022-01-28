@@ -46,7 +46,7 @@ my $dir = dirname((-l __FILE__) ? readlink(__FILE__) : __FILE__);
 my @PRIMARY_FILES = ("$dir/files/setup.sh", "$dir/files/lib-grade.rkt");
 my $help = 0;
 my $docs = 0;
-my $verbose = 1;
+my $verbose = 0;
 
 # +-----------+------------------------------------------------------
 # | Utilities |
@@ -168,7 +168,7 @@ LOG("Creating zipfile $zipfile");
 system("zip -j $zipfile '$tmpdir'/*");
 
 if (!$verbose) {
-  # system("rm -rf $tmpdir");
+  system("rm -rf $tmpdir");
 } else {
   LOG("Please don't forget to remove $tmpdir!");
 }
