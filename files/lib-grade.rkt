@@ -4,6 +4,7 @@
 ; Written by Shriram Krishnamurthi
 ; Updated by Samuel A. Rebelsky (mostly the commented parts)
 
+(require racket/undefined)
 (require lang/prim)
 (require rackunit)
 (require json)
@@ -22,7 +23,8 @@
          test-true
          test-false
          validate-code-file
-         validate-file)
+         validate-file
+         value-of)
 
 (provide mirror-macro)
 
@@ -192,8 +194,15 @@
 ;;; Runs a test to ensure that the given file exists.
 (define validate-code-file
   (lambda (codefile)
-    (check-true (file-exists? codefile)
-                (string-append "General: Code file '" codefile "' exists"))
+    ; Make sure the file exists.
+    (when (not (file-exists? codefile))
+      (produce-report/exit
+       `#hasheq((score . "0")
+                (tests . (#hasheq((name . ,(string-append "Code file '"
+                                                          codefile
+                                                          "' is missing."))
+                                  (output . "Please make sure that you've named your code file correctly.")))))))
+    ; Make sure the file loads properly
     (with-handlers
         ([exn:fail? 
           (lambda (e)
@@ -245,6 +254,17 @@
                                procname
                                fname)))])
       (extract-variable procname fname))))
+
+;;; (value-of id fname) -> any/c?
+;;;   id : symbol?
+;;;   fname : string?
+;;; Look up the identifier in the given file.  If the identifier
+;;; does not exist, uses undefined.
+(define value-of
+  (lambda (id fname)
+    (with-handlers
+        ([exn:fail? (lambda (e) undefined)])
+      (extract-variable id fname))))
 
 ; +------------------+-----------------------------------------------
 ; | Other procedures |
