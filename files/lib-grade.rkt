@@ -202,6 +202,15 @@
                                                           codefile
                                                           "' is missing."))
                                   (output . "Please make sure that you've named your code file correctly.")))))))
+    ; Make sure that the file is in the right form.
+    (when (binary-file? codefile)
+      (produce-report/exit
+       `#hasheq((score . "0")
+                (tests . (#hasheq((name . ,(string-append "Cannot read '"
+                                                          codefile
+                                                          "'."))
+                                  (output . "Your Racket file may not be in readable form.\nPlease save it with\n  File -> Save Other -> Save Definitions As Text...\nThen resubmit.  If that still doesn't work, contact one of the course staff.")))))))
+
     ; Make sure the file loads properly
     (with-handlers
         ([exn:fail? 
@@ -269,6 +278,15 @@
 ; +------------------+-----------------------------------------------
 ; | Other procedures |
 ; +------------------+
+
+;;; (binary-file? filename) -> boolean?
+;;; Determines if a file appears to be a Racket binary file.
+(define binary-file?
+  (lambda (filename)
+    (let* ([port (open-input-file filename)]
+           [opening (read-line port)])
+     (close-input-port port)
+     (equal? (substring opening 0 7) "#reader"))))
 
 ;;; default-filename : string?
 ;;; The default file name for the report file.
