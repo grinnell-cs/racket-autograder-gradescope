@@ -62,7 +62,7 @@
              [(name test-desc param ...)
               (with-syntax ([name-expr (syntax/loc name-stx expr)])
                 (syntax/loc name-stx
-                  (test-case (format "†~a~a [expression: ~a]"
+                  (test-case (format "†~a~a [expression: ~v]"
                                      context test-desc
                                      (car (syntax->datum (syntax (param ...)))))
                              name-expr)))]
@@ -219,7 +219,7 @@
              '#hasheq((score . "0")
                       (tests . (#hasheq((name . "Code does not run")
                                         (output .
-                                         "Your code file does not run.  Please download your complete submission to a new folder,\ntry to run it there, and see if you can tell what went wrong.\nIf not, ask someone for help.")))))))])
+                                         "Your code file does not run.\nThe most likely issues are (a) missing files, (b) inclusion of nonstandard libraries, or (c) a Racket file that with an error.\nPlease download your complete submission to a new folder,\ntry to run it from there, and see if you can tell what went wrong.\nIf not, ask someone for help.")))))))])
       (extract-variable 'cons codefile))))
 
 ;;; (validate-file fname) -> (void)
@@ -286,7 +286,7 @@
     (let* ([port (open-input-file filename)]
            [opening (read-line port)])
      (close-input-port port)
-     (equal? (substring opening 0 7) "#reader"))))
+     (string-prefix? opening "#reader"))))
 
 ;;; default-filename : string?
 ;;; The default file name for the report file.
