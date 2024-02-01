@@ -155,6 +155,7 @@ open my $autograder , "> $autograderFile";
 print $autograder <<"AUTOGRADER";
 #!/usr/bin/env bash
 
+# raco pkg update --all
 racket /autograder/source/$gradeFile;
 AUTOGRADER
 
